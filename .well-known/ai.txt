@@ -1,4 +1,4 @@
-Contact: https://github.com/acreditaias-tech/acreditaIA/issues/new?title=%5Bai.txt%5D%20Contacto
+Contact: mailto:acreditaias@gmail.com
 AI-BOM: https://acreditaias-tech.github.io/acreditaIA/aibom.json
 AI-VC: https://acreditaias-tech.github.io/acreditaIA/ai-credential.json
 AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias
