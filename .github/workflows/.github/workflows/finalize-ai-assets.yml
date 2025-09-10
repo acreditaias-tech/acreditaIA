@@ -1,0 +1,98 @@
+name: Finalize AI Assets
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"   # semanal (lunes 03:00 UTC)
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute base URLs
+        id: compute
+        run: |
+          OWNER="${GITHUB_REPOSITORY%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          BASE_URL="https://${OWNER}.github.io/${REPO}"
+          CONTACT_URL="https://github.com/${OWNER}/${REPO}/issues/new?title=%5Bai.txt%5D%20Contacto"
+          DID_ISSUER="did:web:${OWNER}.github.io:${REPO}"
+          echo "base_url=${BASE_URL}" >> $GITHUB_OUTPUT
+          echo "contact_url=${CONTACT_URL}" >> $GITHUB_OUTPUT
+          echo "did_issuer=${DID_ISSUER}" >> $GITHUB_OUTPUT
+
+      - name: Ensure folders
+        run: mkdir -p .well-known
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Update AIBOM metadata (timestamp + website)
+        run: |
+          TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BASE_URL="${{ steps.compute.outputs.base_url }}"
+          if [ -f aibom.json ]; then
+            jq --arg ts "$TS" --arg url "$BASE_URL" \
+              '.metadata.timestamp=$ts | .metadata.supplier.website=$url' \
+              aibom.json > aibom.tmp && mv aibom.tmp aibom.json
+          else
+            echo "ERROR: aibom.json no existe"; exit 1
+          fi
+
+      - name: Write definitive /.well-known/ai.txt
+        run: |
+          TS=$(date -u +"%Y-%m-%d")
+          BASE_URL="${{ steps.compute.outputs.base_url }}"
+          CONTACT_URL="${{ steps.compute.outputs.contact_url }}"
+          cat > .well-known/ai.txt <<EOF
+Contact: ${CONTACT_URL}
+AI-BOM: ${BASE_URL}/aibom.json
+AI-VC: ${BASE_URL}/ai-credential.json
+AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias
+Provider-GPAI: mistral-large, llama3.1-70b-instruct
+Last-Updated: ${TS}
+Policy: ${BASE_URL}/ai-policy.html
+EOF
+
+      - name: Compute AIBOM SHA256 and write definitive ai-credential.json
+        run: |
+          set -e
+          TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BASE_URL="${{ steps.compute.outputs.base_url }}"
+          DID_ISSUER="${{ steps.compute.outputs.did_issuer }}"
+          SHA=$(sha256sum aibom.json | awk '{print $1}')
+          cat > ai-credential.json <<JSON
+{
+  "@context": ["https://www.w3.org/ns/credentials/v2"],
+  "type": ["VerifiableCredential","AIBOMCredential"],
+  "issuer": "${DID_ISSUER}",
+  "issuanceDate": "${TS}",
+  "credentialSubject": {
+    "id": "${BASE_URL}",
+    "aibom": "${BASE_URL}/aibom.json",
+    "bomHash": "sha256:${SHA}"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "sha256Digest-2023",
+    "created": "${TS}",
+    "proofValue": "sha256:${SHA}",
+    "proofPurpose": "assertionMethod"
+  }
+}
+JSON
+
+      - name: Commit changes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .well-known/ai.txt ai-credential.json aibom.json
+          git commit -m "chore: finalize ai assets (ai.txt + ai-credential.json + aibom.json)" || echo "No changes to commit"
+          git push
