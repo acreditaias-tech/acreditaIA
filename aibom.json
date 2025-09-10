@@ -1,0 +1,64 @@
+{
+  "bomFormat": "AIBOM",
+  "specVersion": "1.0",
+  "metadata": {
+    "generator": "acreditaia-cli v0.1",
+    "timestamp": "2025-09-10T12:00:00Z",
+    "supplier": {
+      "name": "AcreditaIA",
+      "website": "https://example.invalid"
+    }
+  },
+  "aiSystems": [
+    {
+      "name": "support-bot",
+      "purpose": "customer-support",
+      "model": "mistral-large",
+      "provider": "hosted",
+      "inputs": ["texto libre de cliente", "FAQ internas"],
+      "outputs": ["respuesta natural en español"],
+      "dataSources": ["data/faq.csv", "data/policies.md"],
+      "promptStores": ["prompts/support.yaml"],
+      "risks": ["alucinaciones", "exposición de PII", "sesgos"],
+      "controls": ["human-in-the-loop", "PII-masking", "rate-limiting", "logging"],
+      "metrics": {"avgLatencyMs": 850, "manualEscalationRate": 0.07}
+    },
+    {
+      "name": "marketing-analytics",
+      "purpose": "content-classification",
+      "model": "llama3.1-70b-instruct",
+      "provider": "hosted",
+      "inputs": ["posts", "emails marketing"],
+      "outputs": ["etiquetas", "resúmenes"],
+      "dataSources": ["data/campaigns.parquet"],
+      "promptStores": ["prompts/marketing.yaml"],
+      "risks": ["clasificación errónea", "privacidad"],
+      "controls": ["anonimización", "evaluación semanal de precisión"]
+    },
+    {
+      "name": "anomaly-detector",
+      "purpose": "deteccion-anomalias",
+      "model": "isolation-forest",
+      "provider": "in-house",
+      "inputs": ["eventos de logs"],
+      "outputs": ["flags de anomalia"],
+      "dataSources": ["data/logs_agg.parquet"],
+      "risks": ["falsos positivos", "drift"],
+      "controls": ["umbral dinámico", "revisión mensual"]
+    }
+  ],
+  "dataInventory": [
+    {"name": "faq.csv", "pii": "baja", "retention": "12m", "baseLegal": "interes_legitimo"},
+    {"name": "tickets_2024.parquet", "pii": "media", "retention": "18m", "baseLegal": "contrato"}
+  ],
+  "dependencies": [
+    {"name": "fastapi", "version": "0.112.0", "license": "MIT"},
+    {"name": "uvicorn", "version": "0.30.0", "license": "BSD"},
+    {"name": "pydantic", "version": "2.8.0", "license": "MIT"},
+    {"name": "transformers", "version": "4.43.0", "license": "Apache-2.0"},
+    {"name": "langchain", "version": "0.2.12", "license": "MIT"},
+    {"name": "llama-index", "version": "0.10.0", "license": "MIT"},
+    {"name": "numpy", "version": "2.0.0", "license": "BSD-3-Clause"},
+    {"name": "pandas", "version": "2.2.2", "license": "BSD-3-Clause"}
+  ]
+}
