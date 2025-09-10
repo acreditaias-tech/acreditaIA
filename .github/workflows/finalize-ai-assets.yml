@@ -47,11 +47,9 @@ jobs:
       - name: Write /.well-known/ai.txt (no heredoc)
         shell: bash
         run: |
-          owner='${{ steps.vars.outputs.owner }}'
-          repo='${{ steps.vars.outputs.repo }}'
           base='${{ steps.vars.outputs.base_url }}'
           date_only='${{ steps.vars.outputs.date }}'
-          printf 'Contact: https://github.com/%s/%s/issues/new?title=%%5Bai.txt%%5D%%20Contacto\n' "$owner" "$repo" > .well-known/ai.txt
+          printf 'Contact: mailto:acreditaias@gmail.com\n' > .well-known/ai.txt
           printf 'AI-BOM: %s/aibom.json\n' "$base" >> .well-known/ai.txt
           printf 'AI-VC: %s/ai-credential.json\n' "$base" >> .well-known/ai.txt
           printf 'AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias\n' >> .well-known/ai.txt
