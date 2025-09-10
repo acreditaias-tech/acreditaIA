@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>AcreditaIA — Sello de IA verificable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>body{font-family:system-ui,Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px;line-height:1.55}
+  .grid{display:grid;gap:12px} a.button{display:inline-block;padding:10px 14px;border:1px solid #ddd;border-radius:8px;text-decoration:none}
+  code{background:#f6f6f6;padding:2px 6px;border-radius:4px}</style>
+</head>
+<body>
+  <h1>AcreditaIA</h1>
+  <p>Sello de IA verificable: AIBOM + Credencial (VC) + <code>/.well-known/ai.txt</code>.</p>
+  <div class="grid">
+    <a class="button" href="./.well-known/ai.txt">Ver <strong>ai.txt</strong></a>
+    <a class="button" href="./aibom.json">Ver <strong>AIBOM</strong></a>
+    <a class="button" href="./ai-credential.json">Ver <strong>Credencial VC</strong></a>
+    <a class="button" href="./ai-policy.html">Ver <strong>Política IA</strong></a>
+    <a class="button" href="./MODEL_CARD.md">Ver <strong>Model Card</strong></a>
+    <a class="button" href="./risk_register.csv">Descargar <strong>Risk Register</strong></a>
+  </div>
+  <hr/>
+  <p><small>Tras cada <em>push</em> o ejecución del flujo, se actualizan fechas, URLs absolutas y el hash del AIBOM en la credencial.</small></p>
+</body>
+</html>
