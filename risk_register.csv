@@ -1,0 +1,6 @@
+riesgo,severidad,probabilidad,control,evidencia
+alucinaciones,media,media,human-in-the-loop,MODEL_CARD.md#4
+exposicion_pii,alta,baja,anonimizacion+acceso_minimo,ai-policy.html
+clasificacion_erronea,media,media,evaluacion_semanal,pipelines/tests.md
+falsos_positivos_anomalias,media,media,umbral_dinamico,notebooks/anomaly_eval.ipynb
+drift_modelo,media,media,recalibracion_mensual,CHANGELOG.md
