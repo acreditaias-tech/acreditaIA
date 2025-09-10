@@ -44,24 +44,22 @@ jobs:
             echo "sha=${sha}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Write /.well-known/ai.txt
+      - name: Write /.well-known/ai.txt (no heredoc)
         shell: bash
         run: |
           owner='${{ steps.vars.outputs.owner }}'
           repo='${{ steps.vars.outputs.repo }}'
           base='${{ steps.vars.outputs.base_url }}'
           date_only='${{ steps.vars.outputs.date }}'
-          cat > .well-known/ai.txt <<EOF
-Contact: https://github.com/${owner}/${repo}/issues/new?title=%5Bai.txt%5D%20Contacto
-AI-BOM: ${base}/aibom.json
-AI-VC: ${base}/ai-credential.json
-AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias
-Provider-GPAI: mistral-large, llama3.1-70b-instruct
-Last-Updated: ${date_only}
-Policy: ${base}/ai-policy.html
-EOF
+          printf 'Contact: https://github.com/%s/%s/issues/new?title=%%5Bai.txt%%5D%%20Contacto\n' "$owner" "$repo" > .well-known/ai.txt
+          printf 'AI-BOM: %s/aibom.json\n' "$base" >> .well-known/ai.txt
+          printf 'AI-VC: %s/ai-credential.json\n' "$base" >> .well-known/ai.txt
+          printf 'AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias\n' >> .well-known/ai.txt
+          printf 'Provider-GPAI: mistral-large, llama3.1-70b-instruct\n' >> .well-known/ai.txt
+          printf 'Last-Updated: %s\n' "$date_only" >> .well-known/ai.txt
+          printf 'Policy: %s/ai-policy.html\n' "$base" >> .well-known/ai.txt
 
-      - name: Write ai-credential.json
+      - name: Write ai-credential.json (no heredoc)
         shell: bash
         run: |
           owner='${{ steps.vars.outputs.owner }}'
@@ -69,26 +67,24 @@ EOF
           base='${{ steps.vars.outputs.base_url }}'
           ts='${{ steps.vars.outputs.ts }}'
           sha='${{ steps.vars.outputs.sha }}'
-          cat > ai-credential.json <<EOF
-{
-  "@context": ["https://www.w3.org/ns/credentials/v2"],
-  "type": ["VerifiableCredential","AIBOMCredential"],
-  "issuer": "did:web:${owner}.github.io:${repo}",
-  "issuanceDate": "${ts}",
-  "credentialSubject": {
-    "id": "${base}",
-    "aibom": "${base}/aibom.json",
-    "bomHash": "sha256:${sha}"
-  },
-  "proof": {
-    "type": "DataIntegrityProof",
-    "cryptosuite": "sha256Digest-2023",
-    "created": "${ts}",
-    "proofValue": "sha256:${sha}",
-    "proofPurpose": "assertionMethod"
-  }
-}
-EOF
+          printf '%s\n' "{
+            \"@context\": [\"https://www.w3.org/ns/credentials/v2\"],
+            \"type\": [\"VerifiableCredential\",\"AIBOMCredential\"],
+            \"issuer\": \"did:web:${owner}.github.io:${repo}\",
+            \"issuanceDate\": \"${ts}\",
+            \"credentialSubject\": {
+              \"id\": \"${base}\",
+              \"aibom\": \"${base}/aibom.json\",
+              \"bomHash\": \"sha256:${sha}\"
+            },
+            \"proof\": {
+              \"type\": \"DataIntegrityProof\",
+              \"cryptosuite\": \"sha256Digest-2023\",
+              \"created\": \"${ts}\",
+              \"proofValue\": \"sha256:${sha}\",
+              \"proofPurpose\": \"assertionMethod\"
+            }
+          }" > ai-credential.json
 
       - name: Commit and push
         shell: bash
@@ -98,3 +94,4 @@ EOF
           git add .well-known/ai.txt ai-credential.json
           git commit -m "Finalize AI assets" || exit 0
           git push
+
