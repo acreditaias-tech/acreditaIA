@@ -3,5 +3,5 @@ AI-BOM: https://acreditaias-tech.github.io/acreditaIA/aibom.json
 AI-VC: https://acreditaias-tech.github.io/acreditaIA/ai-credential.json
 AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias
 Provider-GPAI: mistral-large, llama3.1-70b-instruct
-Last-Updated: 2025-09-10
+Last-Updated: 2025-09-11
 Policy: https://acreditaias-tech.github.io/acreditaIA/ai-policy.html
