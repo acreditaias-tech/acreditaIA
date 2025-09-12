@@ -42,7 +42,16 @@ jobs:
             echo "date=${date_only}"
           } >> "$GITHUB_OUTPUT"
 
-           - name: Create demo AIBOM if missing (idempotent)
+      # (jq suele venir instalado en ubuntu-latest, pero por si acaso:)
+      - name: Ensure jq
+        shell: bash
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: Create demo AIBOM if missing (idempotent, no heredoc)
         shell: bash
         env:
           BASE_URL: '${{ steps.vars.outputs.base_url }}'
@@ -50,92 +59,89 @@ jobs:
         run: |
           set -e
           if [ ! -f "aibom.json" ]; then
-            cat > aibom.json <<EOF
-{
-  "bomFormat": "AIBOM",
-  "specVersion": "1.0",
-  "metadata": {
-    "generator": "acreditaia-repo-bootstrap v1",
-    "timestamp": "${TS}",
-    "supplier": {
-      "name": "AcreditaIA (DEMO)",
-      "website": "${BASE_URL}"
-    }
-  },
-  "aiSystems": [
-    {
-      "name": "demo-support-bot",
-      "purpose": "customer-support",
-      "model": "mistral-large",
-      "provider": "hosted",
-      "inputs": ["texto usuario"],
-      "outputs": ["respuesta"],
-      "dataSources": ["faq.csv"],
-      "promptStores": ["prompts/"],
-      "risks": ["alucinaciones"],
-      "controls": ["human-in-the-loop"]
-    }
-  ],
-  "dependencies": []
-}
-EOF
-          fi
-
+            jq -n --arg ts "$TS" --arg base "$BASE_URL" '
+            {
+              bomFormat: "AIBOM",
+              specVersion: "1.0",
+              metadata: {
+                generator: "acreditaia-repo-bootstrap v1",
+                timestamp: $ts,
+                supplier: { name: "AcreditaIA (DEMO)", website: $base }
+              },
+              aiSystems: [
+                {
+                  name: "demo-support-bot",
+                  purpose: "customer-support",
+                  model: "mistral-large",
+                  provider: "hosted",
+                  inputs: ["texto usuario"],
+                  outputs: ["respuesta"],
+                  dataSources: ["faq.csv"],
+                  promptStores: ["prompts/"],
+                  risks: ["alucinaciones"],
+                  controls: ["human-in-the-loop"]
+                }
+              ],
+              dependencies: []
+            }' > aibom.json
           fi
 
       - name: Hash AIBOM
         id: hash
         shell: bash
         run: |
+          set -e
           echo "sha=$(sha256sum aibom.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
-      - name: Create ai-credential.json (overwrite)
+      - name: Create ai-credential.json (overwrite, no heredoc)
         shell: bash
         env:
-          BASE_URL: ${{ steps.vars.outputs.base_url }}
-          TS: ${{ steps.vars.outputs.ts }}
-          SHA: ${{ steps.hash.outputs.sha }}
+          BASE_URL: '${{ steps.vars.outputs.base_url }}'
+          TS: '${{ steps.vars.outputs.ts }}'
+          SHA: '${{ steps.hash.outputs.sha }}'
         run: |
-          cat > ai-credential.json <<EOF
-{
-  "@context": ["https://www.w3.org/ns/credentials/v2"],
-  "type": ["VerifiableCredential","AIBOMCredential"],
-  "issuer": "did:web:acreditaia.tech",
-  "issuanceDate": "${TS}",
-  "credentialSubject": {
-    "id": "${BASE_URL}",
-    "aibom": "${BASE_URL}/aibom.json",
-    "bomHash": "sha256:${SHA}"
-  },
-  "proof": {
-    "type": "DataIntegrityProof",
-    "cryptosuite": "sha256Digest-2023",
-    "created": "${TS}",
-    "proofValue": "sha256:${SHA}",
-    "proofPurpose": "assertionMethod"
-  }
-}
-EOF
+          set -e
+          jq -n --arg ts "$TS" --arg base "$BASE_URL" --arg sha "$SHA" '
+          {
+            "@context": ["https://www.w3.org/ns/credentials/v2"],
+            type: ["VerifiableCredential","AIBOMCredential"],
+            issuer: "did:web:acreditaia.tech",
+            issuanceDate: $ts,
+            credentialSubject: {
+              id: $base,
+              aibom: ($base + "/aibom.json"),
+              bomHash: ("sha256:" + $sha)
+            },
+            proof: {
+              type: "DataIntegrityProof",
+              cryptosuite: "sha256Digest-2023",
+              created: $ts,
+              proofValue: ("sha256:" + $sha),
+              proofPurpose: "assertionMethod"
+            }
+          }' > ai-credential.json
 
-      - name: Create /.well-known/ai.txt (overwrite)
+      - name: Create /.well-known/ai.txt (overwrite, sin heredoc)
         shell: bash
         env:
-          BASE_URL: ${{ steps.vars.outputs.base_url }}
-          DATE_ONLY: ${{ steps.vars.outputs.date }}
+          BASE_URL: '${{ steps.vars.outputs.base_url }}'
+          DATE_ONLY: '${{ steps.vars.outputs.date }}'
         run: |
-          cat > .well-known/ai.txt <<EOF
-Contact: mailto:acreditaias@gmail.com
-AI-BOM: ${BASE_URL}/aibom.json
-AI-VC:  ${BASE_URL}/ai-credential.json
-AI-Use: soporte-cliente
-Provider-GPAI: mistral-large
-Last-Updated: ${DATE_ONLY}
-Policy: ${BASE_URL}/ai-policy.html
-EOF
+          set -e
+          printf "%s\n" \
+            "Contact: mailto:acreditaias@gmail.com" \
+            "AI-BOM: ${BASE_URL}/aibom.json" \
+            "AI-VC:  ${BASE_URL}/ai-credential.json" \
+            "AI-Use: soporte-cliente" \
+            "Provider-GPAI: mistral-large" \
+            "Last-Updated: ${DATE_ONLY}" \
+            "Policy: ${BASE_URL}/ai-policy.html" \
+            > .well-known/ai.txt
 
       - name: Ensure policy/model/risk exist (demo)
         shell: bash
         run: |
+          set -e
           [ -f ai-policy.html ] || echo "<!doctype html><meta charset='utf-8'><title>Política IA (demo)</title><h1>Política IA (demo)</h1><p>Ámbitos: soporte-cliente.</p>" > ai-policy.html
           [ -f MODEL_CARD.md ] || printf "# Model Card (demo)\n\n## demo-support-bot\n- Propósito: soporte.\n- Riesgos: alucinaciones.\n- Controles: HITL.\n" > MODEL_CARD.md
           [ -f risk_register.csv ] || printf "riesgo,severidad,probabilidad,control,evidencia\nalucinaciones,media,media,human-in-the-loop,MODEL_CARD.md#demo-support-bot\n" > risk_register.csv
@@ -143,8 +149,9 @@ EOF
       - name: Commit & push
         shell: bash
         run: |
+          set -e
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .well-known/ai.txt aibom.json ai-credential.json ai-policy.html MODEL_CARD.md risk_register.csv
+          git add .well-known/ai.txt aibom.json ai-credential.json ai-policy.html MODEL_CARD.md risk_register.csv || true
           git commit -m "Finalize AI assets (demo)" || exit 0
           git push
