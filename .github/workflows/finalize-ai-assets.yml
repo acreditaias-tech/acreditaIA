@@ -20,8 +20,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Ensure folders
+        shell: bash
         run: |
-          set -euo pipefail
+          set -e
           mkdir -p .well-known
 
       - name: Compute vars
@@ -33,15 +34,19 @@ jobs:
           base_url="https://${owner}.github.io/${repo}"
           ts="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           date_only="$(date -u +'%Y-%m-%d')"
-
-          echo "owner=${owner}" >> $GITHUB_OUTPUT
-          echo "repo=${repo}" >> $GITHUB_OUTPUT
-          echo "base_url=${base_url}" >> $GITHUB_OUTPUT
-          echo "ts=${ts}" >> $GITHUB_OUTPUT
-          echo "date=${date_only}" >> $GITHUB_OUTPUT
+          {
+            echo "owner=${owner}"
+            echo "repo=${repo}"
+            echo "base_url=${base_url}"
+            echo "ts=${ts}"
+            echo "date=${date_only}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create demo AIBOM if missing (idempotent)
         shell: bash
+        env:
+          BASE_URL: ${{ steps.vars.outputs.base_url }}
+          TS: ${{ steps.vars.outputs.ts }}
         run: |
           if [ ! -f "aibom.json" ]; then
             cat > aibom.json <<EOF
@@ -50,10 +55,10 @@ jobs:
   "specVersion": "1.0",
   "metadata": {
     "generator": "acreditaia-repo-bootstrap v1",
-    "timestamp": "${{ steps.vars.outputs.ts }}",
+    "timestamp": "${TS}",
     "supplier": {
       "name": "AcreditaIA (DEMO)",
-      "website": "${{ steps.vars.outputs.base_url }}"
+      "website": "${BASE_URL}"
     }
   },
   "aiSystems": [
@@ -79,51 +84,58 @@ EOF
         id: hash
         shell: bash
         run: |
-          echo "sha=$(sha256sum aibom.json | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "sha=$(sha256sum aibom.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
-      - name: Create ai-credential.json (demo, idempotent overwrite)
+      - name: Create ai-credential.json (overwrite)
         shell: bash
+        env:
+          BASE_URL: ${{ steps.vars.outputs.base_url }}
+          TS: ${{ steps.vars.outputs.ts }}
+          SHA: ${{ steps.hash.outputs.sha }}
         run: |
           cat > ai-credential.json <<EOF
 {
   "@context": ["https://www.w3.org/ns/credentials/v2"],
   "type": ["VerifiableCredential","AIBOMCredential"],
   "issuer": "did:web:acreditaia.tech",
-  "issuanceDate": "${{ steps.vars.outputs.ts }}",
+  "issuanceDate": "${TS}",
   "credentialSubject": {
-    "id": "${{ steps.vars.outputs.base_url }}",
-    "aibom": "${{ steps.vars.outputs.base_url }}/aibom.json",
-    "bomHash": "sha256:${{ steps.hash.outputs.sha }}"
+    "id": "${BASE_URL}",
+    "aibom": "${BASE_URL}/aibom.json",
+    "bomHash": "sha256:${SHA}"
   },
   "proof": {
     "type": "DataIntegrityProof",
     "cryptosuite": "sha256Digest-2023",
-    "created": "${{ steps.vars.outputs.ts }}",
-    "proofValue": "sha256:${{ steps.hash.outputs.sha }}",
+    "created": "${TS}",
+    "proofValue": "sha256:${SHA}",
     "proofPurpose": "assertionMethod"
   }
 }
 EOF
 
-      - name: Create /.well-known/ai.txt (idempotent overwrite)
+      - name: Create /.well-known/ai.txt (overwrite)
         shell: bash
+        env:
+          BASE_URL: ${{ steps.vars.outputs.base_url }}
+          DATE_ONLY: ${{ steps.vars.outputs.date }}
         run: |
           cat > .well-known/ai.txt <<EOF
 Contact: mailto:acreditaias@gmail.com
-AI-BOM: ${{ steps.vars.outputs.base_url }}/aibom.json
-AI-VC:  ${{ steps.vars.outputs.base_url }}/ai-credential.json
+AI-BOM: ${BASE_URL}/aibom.json
+AI-VC:  ${BASE_URL}/ai-credential.json
 AI-Use: soporte-cliente
 Provider-GPAI: mistral-large
-Last-Updated: ${{ steps.vars.outputs.date }}
-Policy: ${{ steps.vars.outputs.base_url }}/ai-policy.html
+Last-Updated: ${DATE_ONLY}
+Policy: ${BASE_URL}/ai-policy.html
 EOF
 
-      - name: Ensure policy/model/risk exist (demo, if missing)
+      - name: Ensure policy/model/risk exist (demo)
         shell: bash
         run: |
           [ -f ai-policy.html ] || echo "<!doctype html><meta charset='utf-8'><title>Política IA (demo)</title><h1>Política IA (demo)</h1><p>Ámbitos: soporte-cliente.</p>" > ai-policy.html
-          [ -f MODEL_CARD.md ] || echo "# Model Card (demo)\n\n## demo-support-bot\n- Propósito: soporte.\n- Riesgos: alucinaciones.\n- Controles: HITL.\n" > MODEL_CARD.md
-          [ -f risk_register.csv ] || echo "riesgo,severidad,probabilidad,control,evidencia\nalucinaciones,media,media,human-in-the-loop,MODEL_CARD.md#demo-support-bot" > risk_register.csv
+          [ -f MODEL_CARD.md ] || printf "# Model Card (demo)\n\n## demo-support-bot\n- Propósito: soporte.\n- Riesgos: alucinaciones.\n- Controles: HITL.\n" > MODEL_CARD.md
+          [ -f risk_register.csv ] || printf "riesgo,severidad,probabilidad,control,evidencia\nalucinaciones,media,media,human-in-the-loop,MODEL_CARD.md#demo-support-bot\n" > risk_register.csv
 
       - name: Commit & push
         shell: bash
