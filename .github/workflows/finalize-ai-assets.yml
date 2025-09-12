@@ -2,12 +2,15 @@ name: Finalize AI Assets
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: finalize-ai-assets-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   finalize:
@@ -16,14 +19,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure files/folders exist
-        shell: bash
+      - name: Ensure folders
         run: |
           set -euo pipefail
           mkdir -p .well-known
-          if [ ! -f aibom.json ]; then
-            printf '%s\n' '{"bomFormat":"AIBOM","specVersion":"1.0","metadata":{"generator":"acreditaia-cli v0.1","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}}' > aibom.json
-          fi
 
       - name: Compute vars
         id: vars
@@ -34,62 +33,103 @@ jobs:
           base_url="https://${owner}.github.io/${repo}"
           ts="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           date_only="$(date -u +'%Y-%m-%d')"
-          sha="$(sha256sum aibom.json | awk '{print $1}')"
-          {
-            echo "owner=${owner}"
-            echo "repo=${repo}"
-            echo "base_url=${base_url}"
-            echo "ts=${ts}"
-            echo "date=${date_only}"
-            echo "sha=${sha}"
-          } >> "$GITHUB_OUTPUT"
 
-      - name: Write /.well-known/ai.txt (no heredoc)
+          echo "owner=${owner}" >> $GITHUB_OUTPUT
+          echo "repo=${repo}" >> $GITHUB_OUTPUT
+          echo "base_url=${base_url}" >> $GITHUB_OUTPUT
+          echo "ts=${ts}" >> $GITHUB_OUTPUT
+          echo "date=${date_only}" >> $GITHUB_OUTPUT
+
+      - name: Create demo AIBOM if missing (idempotent)
         shell: bash
         run: |
-          base='${{ steps.vars.outputs.base_url }}'
-          date_only='${{ steps.vars.outputs.date }}'
-          printf 'Contact: mailto:acreditaias@gmail.com\n' > .well-known/ai.txt
-          printf 'AI-BOM: %s/aibom.json\n' "$base" >> .well-known/ai.txt
-          printf 'AI-VC: %s/ai-credential.json\n' "$base" >> .well-known/ai.txt
-          printf 'AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias\n' >> .well-known/ai.txt
-          printf 'Provider-GPAI: mistral-large, llama3.1-70b-instruct\n' >> .well-known/ai.txt
-          printf 'Last-Updated: %s\n' "$date_only" >> .well-known/ai.txt
-          printf 'Policy: %s/ai-policy.html\n' "$base" >> .well-known/ai.txt
+          if [ ! -f "aibom.json" ]; then
+            cat > aibom.json <<EOF
+{
+  "bomFormat": "AIBOM",
+  "specVersion": "1.0",
+  "metadata": {
+    "generator": "acreditaia-repo-bootstrap v1",
+    "timestamp": "${{ steps.vars.outputs.ts }}",
+    "supplier": {
+      "name": "AcreditaIA (DEMO)",
+      "website": "${{ steps.vars.outputs.base_url }}"
+    }
+  },
+  "aiSystems": [
+    {
+      "name": "demo-support-bot",
+      "purpose": "customer-support",
+      "model": "mistral-large",
+      "provider": "hosted",
+      "inputs": ["texto usuario"],
+      "outputs": ["respuesta"],
+      "dataSources": ["faq.csv"],
+      "promptStores": ["prompts/"],
+      "risks": ["alucinaciones"],
+      "controls": ["human-in-the-loop"]
+    }
+  ],
+  "dependencies": []
+}
+EOF
+          fi
 
-      - name: Write ai-credential.json (no heredoc)
+      - name: Hash AIBOM
+        id: hash
         shell: bash
         run: |
-          owner='${{ steps.vars.outputs.owner }}'
-          repo='${{ steps.vars.outputs.repo }}'
-          base='${{ steps.vars.outputs.base_url }}'
-          ts='${{ steps.vars.outputs.ts }}'
-          sha='${{ steps.vars.outputs.sha }}'
-          printf '%s\n' "{
-            \"@context\": [\"https://www.w3.org/ns/credentials/v2\"],
-            \"type\": [\"VerifiableCredential\",\"AIBOMCredential\"],
-            \"issuer\": \"did:web:${owner}.github.io:${repo}\",
-            \"issuanceDate\": \"${ts}\",
-            \"credentialSubject\": {
-              \"id\": \"${base}\",
-              \"aibom\": \"${base}/aibom.json\",
-              \"bomHash\": \"sha256:${sha}\"
-            },
-            \"proof\": {
-              \"type\": \"DataIntegrityProof\",
-              \"cryptosuite\": \"sha256Digest-2023\",
-              \"created\": \"${ts}\",
-              \"proofValue\": \"sha256:${sha}\",
-              \"proofPurpose\": \"assertionMethod\"
-            }
-          }" > ai-credential.json
+          echo "sha=$(sha256sum aibom.json | awk '{print $1}')" >> $GITHUB_OUTPUT
 
-      - name: Commit and push
+      - name: Create ai-credential.json (demo, idempotent overwrite)
+        shell: bash
+        run: |
+          cat > ai-credential.json <<EOF
+{
+  "@context": ["https://www.w3.org/ns/credentials/v2"],
+  "type": ["VerifiableCredential","AIBOMCredential"],
+  "issuer": "did:web:acreditaia.tech",
+  "issuanceDate": "${{ steps.vars.outputs.ts }}",
+  "credentialSubject": {
+    "id": "${{ steps.vars.outputs.base_url }}",
+    "aibom": "${{ steps.vars.outputs.base_url }}/aibom.json",
+    "bomHash": "sha256:${{ steps.hash.outputs.sha }}"
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "sha256Digest-2023",
+    "created": "${{ steps.vars.outputs.ts }}",
+    "proofValue": "sha256:${{ steps.hash.outputs.sha }}",
+    "proofPurpose": "assertionMethod"
+  }
+}
+EOF
+
+      - name: Create /.well-known/ai.txt (idempotent overwrite)
+        shell: bash
+        run: |
+          cat > .well-known/ai.txt <<EOF
+Contact: mailto:acreditaias@gmail.com
+AI-BOM: ${{ steps.vars.outputs.base_url }}/aibom.json
+AI-VC:  ${{ steps.vars.outputs.base_url }}/ai-credential.json
+AI-Use: soporte-cliente
+Provider-GPAI: mistral-large
+Last-Updated: ${{ steps.vars.outputs.date }}
+Policy: ${{ steps.vars.outputs.base_url }}/ai-policy.html
+EOF
+
+      - name: Ensure policy/model/risk exist (demo, if missing)
+        shell: bash
+        run: |
+          [ -f ai-policy.html ] || echo "<!doctype html><meta charset='utf-8'><title>Política IA (demo)</title><h1>Política IA (demo)</h1><p>Ámbitos: soporte-cliente.</p>" > ai-policy.html
+          [ -f MODEL_CARD.md ] || echo "# Model Card (demo)\n\n## demo-support-bot\n- Propósito: soporte.\n- Riesgos: alucinaciones.\n- Controles: HITL.\n" > MODEL_CARD.md
+          [ -f risk_register.csv ] || echo "riesgo,severidad,probabilidad,control,evidencia\nalucinaciones,media,media,human-in-the-loop,MODEL_CARD.md#demo-support-bot" > risk_register.csv
+
+      - name: Commit & push
         shell: bash
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .well-known/ai.txt ai-credential.json
-          git commit -m "Finalize AI assets" || exit 0
+          git add .well-known/ai.txt aibom.json ai-credential.json ai-policy.html MODEL_CARD.md risk_register.csv
+          git commit -m "Finalize AI assets (demo)" || exit 0
           git push
-
