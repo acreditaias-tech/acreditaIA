@@ -42,12 +42,13 @@ jobs:
             echo "date=${date_only}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create demo AIBOM if missing (idempotent)
+           - name: Create demo AIBOM if missing (idempotent)
         shell: bash
         env:
-          BASE_URL: ${{ steps.vars.outputs.base_url }}
-          TS: ${{ steps.vars.outputs.ts }}
+          BASE_URL: '${{ steps.vars.outputs.base_url }}'
+          TS: '${{ steps.vars.outputs.ts }}'
         run: |
+          set -e
           if [ ! -f "aibom.json" ]; then
             cat > aibom.json <<EOF
 {
@@ -78,6 +79,8 @@ jobs:
   "dependencies": []
 }
 EOF
+          fi
+
           fi
 
       - name: Hash AIBOM
