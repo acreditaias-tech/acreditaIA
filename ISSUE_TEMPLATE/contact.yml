@@ -1,0 +1,19 @@
+name: Contacto (general)
+description: Escribe para soporte, dudas o contacto comercial
+title: "[Contacto]: "
+labels: ["contact"]
+body:
+  - type: input
+    id: email
+    attributes:
+      label: Tu email
+      placeholder: nombre@empresa.com
+    validations:
+      required: true
+  - type: textarea
+    id: message
+    attributes:
+      label: Mensaje
+      placeholder: Cuenta brevemente tu caso
+    validations:
+      required: true
