@@ -32,6 +32,16 @@ Este repositorio muestra cómo publicamos y verificamos evidencias de IA: `/.wel
 5. `risk_register.csv`: riesgos/controles con evidencia.  
 6. `ai-policy.html`: política pública de IA.
 
+🛠️ Cómo generamos estas evidencias para un cliente (resumen)
+
+Ejecutamos el motor privado (AcreditaIA Engine) con su repo (solo lectura) → genera aibom.json, ai-credential.json, /.well-known/ai.txt, MODEL_CARD.md, risk_register.csv, ai-policy.html.
+
+Revisamos/Enriquecemos (riesgos, controles, métricas).
+
+Publicamos en el dominio del cliente (GitHub Pages u otro hosting).
+
+Validamos: URLs 200 OK + hash coincide + fechas/contacto correctos.
+
 ---
 
 ## 🔒 Verificar integridad del AIBOM (Windows)
