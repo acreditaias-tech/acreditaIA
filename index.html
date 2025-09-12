@@ -1,25 +1,49 @@
+```html
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8"/>
-  <title>AcreditaIA — Sello de IA verificable</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <style>body{font-family:system-ui,Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px;line-height:1.55}
-  .grid{display:grid;gap:12px} a.button{display:inline-block;padding:10px 14px;border:1px solid #ddd;border-radius:8px;text-decoration:none}
-  code{background:#f6f6f6;padding:2px 6px;border-radius:4px}</style>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AcreditaIA — Evidencias verificables</title>
+  <meta name="description" content="AIBOM + VC + ai.txt + Model Card + Risk Register + AI Policy"/>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { --bg:#0b1020; --fg:#e8ecf1; --card:#131a33; --muted:#a9b3c8; }
+    body { margin:0; font-family:system-ui,Arial,sans-serif; background:var(--bg); color:var(--fg); }
+    .wrap { max-width:980px; margin:40px auto; padding:0 16px; }
+    h1 { font-size:2rem; margin:.25rem 0 1rem; }
+    p { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:20px 0 28px; }
+    .card { background:var(--card); border-radius:16px; padding:16px; box-shadow:0 10px 24px rgba(0,0,0,.2); }
+    .card a { color:#8bd1ff; text-decoration:none; word-break:break-all; }
+    code { background:#0e142a; padding:10px; display:block; border-radius:8px; font-family:Consolas,monospace; font-size:13px; }
+    footer { margin:40px 0; color:var(--muted); font-size:.9rem; }
+  </style>
 </head>
 <body>
-  <h1>AcreditaIA</h1>
-  <p>Sello de IA verificable: AIBOM + Credencial (VC) + <code>/.well-known/ai.txt</code>.</p>
-  <div class="grid">
-    <a class="button" href="./.well-known/ai.txt">Ver <strong>ai.txt</strong></a>
-    <a class="button" href="./aibom.json">Ver <strong>AIBOM</strong></a>
-    <a class="button" href="./ai-credential.json">Ver <strong>Credencial VC</strong></a>
-    <a class="button" href="./ai-policy.html">Ver <strong>Política IA</strong></a>
-    <a class="button" href="./MODEL_CARD.md">Ver <strong>Model Card</strong></a>
-    <a class="button" href="./risk_register.csv">Descargar <strong>Risk Register</strong></a>
-  </div>
-  <hr/>
-  <p><small>Tras cada <em>push</em> o ejecución del flujo, se actualizan fechas, URLs absolutas y el hash del AIBOM en la credencial.</small></p>
+  <main class="wrap">
+    <h1>AcreditaIA — Evidencias de IA verificables</h1>
+    <p>Publicamos <strong>ai.txt</strong>, <strong>AIBOM</strong>, <strong>Credencial (VC)</strong>, <strong>Model Card</strong>, <strong>Risk Register</strong> y <strong>AI Policy</strong>. A continuación tienes accesos rápidos:</p>
+
+    <section class="grid">
+      <div class="card"><h3>/.well-known/ai.txt</h3><a href="/acreditaIA/.well-known/ai.txt">https://acreditaias-tech.github.io/acreditaIA/.well-known/ai.txt</a></div>
+      <div class="card"><h3>AIBOM</h3><a href="/acreditaIA/aibom.json">https://acreditaias-tech.github.io/acreditaIA/aibom.json</a></div>
+      <div class="card"><h3>Credencial (VC)</h3><a href="/acreditaIA/ai-credential.json">https://acreditaias-tech.github.io/acreditaIA/ai-credential.json</a></div>
+      <div class="card"><h3>AI Policy</h3><a href="/acreditaIA/ai-policy.html">https://acreditaias-tech.github.io/acreditaIA/ai-policy.html</a></div>
+      <div class="card"><h3>Model Card</h3><a href="/acreditaIA/MODEL_CARD.md">https://acreditaias-tech.github.io/acreditaIA/MODEL_CARD.md</a></div>
+      <div class="card"><h3>Risk Register</h3><a href="/acreditaIA/risk_register.csv">https://acreditaias-tech.github.io/acreditaIA/risk_register.csv</a></div>
+    </section>
+
+    <section class="card">
+      <h3>Cómo verificar integridad del AIBOM (Windows)</h3>
+      <code>certutil -hashfile aibom.json SHA256</code>
+      <p>El hash debe coincidir con <code>credentialSubject.bomHash</code> en <em>ai-credential.json</em>.</p>
+    </section>
+
+    <footer>
+      Contacto: <a href="mailto:acreditaias@gmail.com">acreditaias@gmail.com</a> ·
+      Web: <a href="https://acreditaias-tech.github.io/acreditaIA/">https://acreditaias-tech.github.io/acreditaIA/</a>
+    </footer>
+  </main>
 </body>
 </html>
