@@ -1,7 +1,7 @@
 Contact: mailto:acreditaias@gmail.com
 AI-BOM: https://acreditaias-tech.github.io/acreditaIA/aibom.json
-AI-VC: https://acreditaias-tech.github.io/acreditaIA/ai-credential.json
-AI-Use: marketing-analytics, soporte-cliente, deteccion-anomalias
-Provider-GPAI: mistral-large, llama3.1-70b-instruct
+AI-VC:  https://acreditaias-tech.github.io/acreditaIA/ai-credential.json
+AI-Use: soporte-cliente
+Provider-GPAI: mistral-large
 Last-Updated: 2025-09-12
 Policy: https://acreditaias-tech.github.io/acreditaIA/ai-policy.html
